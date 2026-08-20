@@ -158,8 +158,7 @@ im `npm start` Entwicklungsmodus).
 
 ## Versionsstand
 
-Aktuell v1.0.0 — als "fertig für die Testphase" markiert. Weitere
-Änderungen sollten die Versionsnummer in `package.json` entsprechend
-hochzählen (`versionCode` in generierten Android-Projekten ist aktuell
-noch fest auf `1` gesetzt, kein automatisches Hochzählen bei Updates —
-bekannte offene TODO).
+Aktuell v1.1.0. Weitere Änderungen sollten die Versionsnummer in
+`package.json` entsprechend hochzählen (`versionCode` in generierten
+Android-Projekten ist aktuell noch fest auf `1` gesetzt, kein
+automatisches Hochzählen bei Updates — bekannte offene TODO).
