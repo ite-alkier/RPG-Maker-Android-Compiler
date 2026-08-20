@@ -1,0 +1,48 @@
+{
+  "name": "rpgmaker-android-compiler",
+  "version": "1.0.0",
+  "description": "One-Click Android-Compiler fuer RPG Maker MV/MZ Web-Exporte",
+  "main": "main.js",
+  "author": "FrogSmith (Neocrypton)",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win",
+    "release": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win --publish always"
+  },
+  "dependencies": {
+    "extract-zip": "^2.0.1",
+    "fs-extra": "^11.2.0",
+    "archiver": "^7.0.1",
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.example.rpgmakerandroidcompiler",
+    "productName": "RPG Maker Android Compiler",
+    "copyright": "Copyright © 2026 Neocrypton",
+    "asar": false,
+    "publish": {
+      "provider": "github",
+      "owner": "ite-alkier",
+      "repo": "RPG-Maker-Android-Compiler"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true,
+      "allowElevation": true
+    }
+  }
+}

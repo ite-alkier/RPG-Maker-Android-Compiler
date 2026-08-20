@@ -1,0 +1,35 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'com.rpgmakercompiler.wrapper'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.rpgmaker.placeholder"
+        minSdk 30
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("PLACEHOLDER_KEYSTORE_PATH")
+            storePassword "PLACEHOLDER_STORE_PASSWORD"
+            keyAlias "release"
+            keyPassword "PLACEHOLDER_KEY_PASSWORD"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>RPG Maker Android Compiler</title>
+<style>
+  :root {
+    --bg: #1e1f24;
+    --panel: #2a2b32;
+    --accent: #5b8def;
+    --accent-hover: #7aa4f2;
+    --text: #e8e9ec;
+    --text-dim: #9a9ba3;
+    --ok: #4caf7d;
+    --border: #3a3b43;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 10px 26px 20px;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    flex: 0 0 auto;
+    height: 110px;
+  }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  p.subtitle { color: var(--text-dim); margin: 0; font-size: 12px; }
+
+  .lang-switch {
+    display: flex;
+    gap: 4px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+    flex-shrink: 0;
+  }
+  .lang-switch button {
+    background: transparent;
+    color: var(--text-dim);
+    padding: 5px 8px;
+    font-size: 12px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .lang-switch .lang-flag {
+    width: 18px;
+    height: 12px;
+    display: block;
+  }
+  .lang-switch button:hover:not(:disabled) { background: #35363f; color: var(--text); }
+  .lang-switch button.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  /* Zweispaltiges Layout: links die Schritte, rechts das Protokoll --
+     bleibt beim Scrollen der linken Spalte stehen (position: sticky),
+     damit man den Fortschritt jederzeit im Blick hat, ohne runter zu
+     scrollen. */
+  .layout {
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .main-column {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 1.35fr;
+    grid-auto-rows: auto;
+    gap: 14px;
+    align-items: stretch;
+    align-content: start;
+  }
+  .cell-a { grid-column: 1; grid-row: 1; }
+  .cell-b { grid-column: 2; grid-row: 1; }
+  .cell-c { grid-column: 1; grid-row: 2; }
+  .cell-d { grid-column: 2; grid-row: 2; }
+  .full-width { grid-column: 1 / -1; grid-row: 3; }
+  .cell-a, .cell-b, .cell-c, .cell-d { display: flex; }
+  .cell-a .group-card, .cell-b .group-card,
+  .cell-c .group-card, .cell-d .group-card,
+  .full-width .group-card {
+    flex: 1;
+    margin-bottom: 0;
+  }
+  .log-column {
+    width: 360px;
+    flex-shrink: 0;
+    min-height: 0;
+  }
+  .log-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .log-card #log {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+  }
+
+  /* Mehrere zusammengehoerige Schritte teilen sich EINE Karte
+     (group-card), innerhalb per duenner Trennlinie in Unterschritte
+     (substep) gegliedert -- deutlich weniger Leerraum durch Rand/
+     Abstand als 9 einzelne Karten. */
+  .group-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
+  }
+  .substep { padding: 12px 0; }
+  .substep + .substep { border-top: 1px solid var(--border); }
+  .substep:first-child { padding-top: 0; }
+  .substep:last-child { padding-bottom: 0; }
+  .substep h2, .substep h3 {
+    font-size: 13px;
+    margin: 0 0 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+  }
+
+  button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 16px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { background: var(--accent-hover); }
+  button:disabled { background: #454650; color: #77787f; cursor: not-allowed; }
+
+  .path-display {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+    word-break: break-all;
+  }
+
+  .radio-group { display: flex; gap: 20px; margin-top: 4px; flex-wrap: wrap; row-gap: 8px; }
+  .radio-group.vertical {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  /* Zwei eigenstaendige, umrandete Boxen nebeneinander (z.B. Schritt 6:
+     Aktion links, zugehoerige Option rechts als eigene kleine "Tabelle"). */
+  .split-row { display: flex; gap: 14px; align-items: stretch; flex-wrap: wrap; }
+  .nested-box {
+    padding: 0;
+    flex: 1;
+    min-width: 220px;
+  }
+  .nested-box.narrow { flex: 0 0 240px; }
+  .nested-box h2, .nested-box h3 {
+    font-size: 12px;
+    margin: 0 0 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+  }
+  .radio-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 8px;
+    line-height: 1.4;
+  }
+  .checkbox-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+
+  .field-group { margin-top: 10px; }
+  .field-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .field-row > div { flex: 1; min-width: 180px; }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 8px 10px;
+    background: #1c1d22;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+  }
+  label.field-label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+  }
+
+  #log {
+    background: #16171b;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 19px 12px 14px;
+    font-family: Consolas, monospace;
+    font-size: 11px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    color: #b7d9c5;
+  }
+  .log-line {
+    margin-bottom: 4px;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+  .log-line.err { color: #e08a8a; }
+  .log-line.ok { color: var(--ok); }
+
+  .info-icon, .warn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: bold;
+    cursor: help;
+    margin-left: 6px;
+    position: relative;
+    vertical-align: middle;
+  }
+  .info-icon { background: #3a3b43; color: var(--text-dim); }
+  .warn-icon { background: #4a3720; color: #e0a95c; }
+
+  .info-icon::after, .warn-icon::after {
+    content: attr(data-tip);
+    position: absolute;
+    left: 50%;
+    bottom: 130%;
+    transform: translateX(-50%);
+    background: #101114;
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 9px 11px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: normal;
+    text-transform: none;
+    letter-spacing: normal;
+    line-height: 1.4;
+    white-space: normal;
+    width: 260px;
+    z-index: 10;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s ease;
+  }
+  .info-icon:hover::after, .info-icon:focus::after,
+  .warn-icon:hover::after, .warn-icon:focus::after {
+    opacity: 1;
+  }
+
+  .disabled-section { opacity: 0.4; pointer-events: none; }
+
+  /* Schmaler, dezenter Scrollbalken statt des Standard-Systembalkens --
+     greift ueberall dort, wo mal gescrollt werden muss (Protokoll, im
+     Ausnahmefall auch die linke Spalte oder das Dokument selbst). */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #454650;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #5a5c68;
+  }
+
+  /* Unter 1100px Fensterbreite: Protokoll unter die Schritte statt
+     daneben, damit nichts abgeschnitten wird. */
+  @media (max-width: 1100px) {
+    .layout { flex-direction: column; }
+    .log-column { width: 100%; flex: 0 0 260px; }
+    .log-card { height: 100%; }
+    .main-column { grid-template-columns: 1fr; flex: 1; }
+    .cell-a, .cell-b, .cell-c, .cell-d, .full-width { grid-column: 1; grid-row: auto; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="header-row">
+    <div>
+      <h1>RPG Maker Android Compiler</h1>
+      <p class="subtitle" data-i18n="app.subtitle">One-Click Android-Compiler für RPG Maker MV/MZ Web-Exporte</p>
+    </div>
+    <div style="display: flex; align-items: center; gap: 20px;">
+      <div class="lang-switch" id="langSwitch">
+        <!-- Wird zur Laufzeit dynamisch mit Buttons pro gefundener Sprachdatei befuellt -->
+      </div>
+      <img src="assets/logo.png" alt="FrogSmith Logo" style="height: 72px; width: auto; display: block; flex-shrink: 0;">
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="main-column">
+
+      <div class="cell-a">
+      <!-- Gruppe A: Projekt auswählen + Engine (Schritte 1-2) -->
+      <div class="group-card">
+
+        <div class="substep">
+          <h2>
+            <span data-i18n="step1.title">1. Projekt auswählen</span>
+            <span class="info-icon" tabindex="0" data-tip-i18n="step1.tooltip">?</span>
+          </h2>
+          <div class="radio-group" style="margin-bottom: 10px;">
+            <label class="radio-option">
+              <input type="radio" name="sourceType" value="folder" id="sourceFolder" checked>
+              <span data-i18n="step1.radioFolder">Ordnerauswahl</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="sourceType" value="zip" id="sourceZip">
+              <span data-i18n="step1.radioZip">ZIP auswählen</span>
+            </label>
+          </div>
+          <button id="btnSelect" data-i18n="step1.button">Projekt auswählen…</button>
+          <div class="path-display" id="pathDisplay" data-i18n="step1.pathDefault">Noch kein Projekt ausgewählt.</div>
+        </div>
+
+        <div class="substep disabled-section" id="engineSection">
+          <h2>
+            <span data-i18n="step2.title">2. Engine bestätigen</span>
+            <span class="info-icon" tabindex="0" data-tip-i18n="step2.tooltip">?</span>
+          </h2>
+          <div class="radio-group">
+            <label class="radio-option">
+              <input type="radio" name="engine" value="MV" id="radioMV">
+              <span data-i18n="step2.mv">RPG Maker MV</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="engine" value="MZ" id="radioMZ">
+              <span data-i18n="step2.mz">RPG Maker MZ</span>
+            </label>
+          </div>
+          <div class="hint" id="detectionHint" data-i18n="step2.hintDefault">Automatische Erkennung noch nicht ausgeführt.</div>
+        </div>
+
+      </div>
+      </div>
+
+      <div class="cell-b">
+      <!-- Gruppe B: App-Einstellungen (Schritt 5) -->
+      <div class="group-card disabled-section" id="configSection">
+        <div class="substep">
+          <h2>
+            <span data-i18n="step5.title">5. App-Einstellungen</span>
+            <span class="info-icon" tabindex="0" data-tip-i18n="step5.tooltip">?</span>
+          </h2>
+
+          <div class="field-row">
+            <div>
+              <label class="field-label" for="packageId">
+                <span data-i18n="step5.packageIdLabel">Package-ID</span>
+                <span class="warn-icon" tabindex="0" data-tip-i18n="step5.packageIdWarnTooltip">!</span>
+              </label>
+              <input type="text" id="packageId" data-i18n-placeholder="step5.packageIdPlaceholder" placeholder="com.rpgmaker.meinspiel">
+              <div class="hint" id="packageIdHint"></div>
+            </div>
+            <div>
+              <label class="field-label" for="versionName" data-i18n="step5.versionLabel">Versionsname</label>
+              <input type="text" id="versionName" value="1.0.0">
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" data-i18n="step5.orientationLabel">Bildschirmausrichtung</label>
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" name="orientation" value="portrait" id="orientPortrait" checked>
+                <span data-i18n="step5.orientationPortrait">Hochformat</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="orientation" value="landscape" id="orientLandscape">
+                <span data-i18n="step5.orientationLandscape">Querformat</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="orientation" value="unspecified" id="orientAuto">
+                <span data-i18n="step5.orientationAuto">Automatisch</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" data-i18n="step5.iconLabel">App-Icon</label>
+            <button id="btnSelectIcon" data-i18n="step5.iconButton">Icon auswählen (PNG)…</button>
+            <div class="path-display" id="iconPathDisplay" data-i18n="step5.iconDefault">Kein Icon ausgewählt.</div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <div class="cell-c">
+      <!-- Gruppe C: Projektname + Import (Schritte 3-4) -->
+      <div class="group-card">
+
+        <div class="substep disabled-section" id="nameSection">
+          <h2>
+            <span data-i18n="step3.title">3. Projektname</span>
+            <span class="info-icon" tabindex="0" data-tip-i18n="step3.tooltip">?</span>
+          </h2>
+          <label class="field-label" for="projectName" data-i18n="step3.label">App-Name (wird auch als Ordner-/Build-Name verwendet)</label>
+          <input type="text" id="projectName" data-i18n-placeholder="step3.placeholder" placeholder="Mein Spiel">
+        </div>
+
+        <div class="substep">
+          <h2>
+            <span data-i18n="step4.title">4. Import</span>
+            <span class="info-icon" tabindex="0" data-tip-i18n="step4.tooltip">?</span>
+          </h2>
+          <button id="btnImport" disabled data-i18n="step4.button">Projekt importieren</button>
+          <div class="hint" data-i18n="step4.hint">
+            Kopiert das erkannte Projekt in einen einheitlichen Arbeitsordner (www/).
+          </div>
+        </div>
+
+      </div>
+      </div>
+
+      <div class="cell-d">
+      <!-- Gruppe D: Android-Projekt (Schritt 6) -->
+      <div class="group-card disabled-section" id="capacitorSection">
+        <div class="substep">
+          <div class="split-row">
+            <div class="nested-box">
+              <h2>
+                <span data-i18n="step6.title">6. Android-Projekt vorbereiten</span>
+                <span class="info-icon" tabindex="0" data-tip-i18n="step6.tooltipQ">?</span>
+              </h2>
+              <button id="btnPrepareCapacitor" data-i18n="step6.button">Android-Projekt vorbereiten</button>
+              <div class="hint" data-i18n="step6.hint">
+                Erstellt das native Android-Projekt aus einer mitgelieferten Vorlage und setzt
+                Package-ID, App-Name, Icon, Ausrichtung und Mindest-Android-Version.
+                Läuft komplett lokal, ohne Internetverbindung.
+              </div>
+            </div>
+            <div class="nested-box narrow">
+              <h2>
+                <span data-i18n="step6.minSdkLabel">Mindest-Android-Version</span>
+                <span class="info-icon" tabindex="0" data-tip-i18n="step6.minSdkTooltip">?</span>
+              </h2>
+              <div class="radio-group vertical">
+                <label class="radio-option">
+                  <input type="radio" name="minSdk" value="30" id="sdk30" checked>
+                  <span data-i18n="step6.sdk30">Android 11+ (API 30)</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="minSdk" value="31" id="sdk31">
+                  <span data-i18n="step6.sdk31">Android 12+ (API 31)</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="minSdk" value="33" id="sdk33">
+                  <span data-i18n="step6.sdk33">Android 13+ (API 33)</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="minSdk" value="34" id="sdk34">
+                  <span data-i18n="step6.sdk34">Android 14+ (API 34)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <div class="full-width">
+      <!-- Gruppe 4: APK bauen (Schritte 7-9) -->
+      <div class="group-card">
+
+        <div class="substep">
+          <div class="split-row">
+            <div class="nested-box disabled-section" id="outputDirSection">
+              <h2>
+                <span data-i18n="step7.title">7. Ausgabeordner für die APK</span>
+                <span class="info-icon" tabindex="0" data-tip-i18n="step7.tooltip">?</span>
+              </h2>
+              <button id="btnSelectOutputDir" data-i18n="step7.button">Ausgabeordner wählen…</button>
+              <div class="path-display" id="outputDirDisplay" data-i18n="step7.pathDefault">Standardordner wird verwendet.</div>
+            </div>
+            <div class="nested-box disabled-section" id="backupSection">
+              <h2>
+                <span data-i18n="step8.title">8. Android-Projekt sichern (optional)</span>
+                <span class="info-icon" tabindex="0" data-tip-i18n="step8.tooltip">?</span>
+              </h2>
+              <label class="checkbox-option" style="white-space: nowrap;">
+                <input type="checkbox" id="cleanupAfterBuild">
+                <span data-i18n="step8.checkboxLabel">Nach erfolgreicher APK-Erzeugung wird das temporär angelegte Projekt entfernt</span>
+              </label>
+              <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+                <button id="btnZipProject" data-i18n="step8.zipButton">Projekt zippen</button>
+                <div class="hint" style="margin-top: 0; flex: 1; min-width: 160px;" data-i18n="step8.hint">
+                  Nutze diesen Schritt, um dir das native Android-Projekt vorab zu sichern.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="substep disabled-section" id="buildApkSection">
+          <h2>
+            <span data-i18n="step9.title">9. APK erstellen</span>
+            <span class="info-icon" tabindex="0" data-tip-i18n="step9.tooltip">?</span>
+            <span class="warn-icon" tabindex="0" data-tip-i18n="step9.warnTooltip">!</span>
+          </h2>
+          <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+            <button id="btnBuildApk" data-i18n="step9.button">APK erstellen</button>
+            <div class="hint" style="margin-top: 0; flex: 1; min-width: 200px;" data-i18n="step9.hint">
+              Erzeugt beim ersten Mal automatisch einen Signierungs-Schlüssel für diese App.
+            </div>
+          </div>
+        </div>
+
+      </div>
+      </div>
+
+    </div>
+
+    <div class="log-column">
+      <div class="group-card log-card">
+        <h2 style="text-transform: uppercase; letter-spacing: 0.04em; font-size: 13px; color: var(--text-dim); margin: 0 0 10px;" data-i18n="log.title">Protokoll</h2>
+        <div id="log"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

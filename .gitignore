@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output (electron-builder)
+dist/
+release/
+
+# Generated/imported user RPG Maker projects & Android builds
+# (entstehen zur Laufzeit im App-Datenordner, nicht im Repo)
+build/
+www-import/
+
+# Keystores & Signaturen (NIE committen — pro Projekt einzigartig)
+*.keystore
+*.jks
+
+# Android/Gradle lokale, maschinenspezifische Dateien
+local.properties
+.gradle/
+templates/native-android/app/build/
+templates/native-android/.gradle/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
