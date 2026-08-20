@@ -4,7 +4,7 @@
   "description": "One-Click Android-Compiler fuer RPG Maker MV/MZ Web-Exporte",
   "main": "main.js",
   "author": "FrogSmith (Neocrypton)",
-  "license": "UNLICENSED",
+  "license": "GPL-3.0",
   "private": true,
   "scripts": {
     "start": "electron .",
