@@ -31,3 +31,6 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+
+# Interne Claude-Code-Projektnotizen, nicht fuer das Repository bestimmt
+CLAUDE.md
