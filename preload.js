@@ -15,4 +15,7 @@ contextBridge.exposeInMainWorld('api', {
   onBuildLog: (callback) => {
     ipcRenderer.on('build:log', (event, data) => callback(data));
   },
+  onUpdateProgress: (callback) => {
+    ipcRenderer.on('update:progress', (event, data) => callback(data));
+  },
 });

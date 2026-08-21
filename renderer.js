@@ -349,6 +349,34 @@ async function initApp() {
     log(line, type);
   });
 
+  // ---------------------------------------------------------------------
+  // Auto-Update: Download-Fortschrittsbalken
+  // ---------------------------------------------------------------------
+  const updateBanner = document.getElementById('updateBanner');
+  const updateBannerText = document.getElementById('updateBannerText');
+  const updateBannerFill = document.getElementById('updateBannerFill');
+
+  window.api.onUpdateProgress(({ state, percent, transferred, total }) => {
+    if (state === 'downloading') {
+      const pct = Math.min(100, Math.round(percent || 0));
+      updateBanner.hidden = false;
+      updateBannerFill.style.width = pct + '%';
+      updateBannerText.textContent =
+        transferred != null && total != null
+          ? t(currentLang, 'update.downloadingWithSize', {
+              percent: pct,
+              transferred: formatBytes(transferred),
+              total: formatBytes(total),
+            })
+          : t(currentLang, 'update.downloading', { percent: pct });
+    } else {
+      // 'done' oder 'error' -- Balken wieder ausblenden, der Neustart-
+      // Dialog bzw. die Konsole informiert bei Bedarf weiter.
+      updateBanner.hidden = true;
+      updateBannerFill.style.width = '0%';
+    }
+  });
+
   btnPrepareCapacitor.addEventListener('click', async () => {
     if (!importResult) {
       log(t(currentLang, 'step6.logNoImport'), 'err');

@@ -145,6 +145,8 @@
   "menu.close": "閉じる",
   "menu.help": "ヘルプ",
   "update.checking": "アップデートを確認しています…",
+  "update.downloading": "アップデートをダウンロードしています… {percent}%",
+  "update.downloadingWithSize": "アップデートをダウンロードしています… {percent}%（{transferred} / {total}）",
   "update.available": "アップデートが利用可能です（バージョン {version}）。バックグラウンドでダウンロードしています…",
   "update.notAvailable": "利用可能なアップデートはありません。すでに最新バージョンをご利用です。",
   "update.downloaded.title": "アップデートの準備ができました",

@@ -79,6 +79,29 @@ function getWorkDir() {
   return path.join(app.getPath('userData'), 'work');
 }
 
+// Persistiert die zuletzt gewaehlte Sprache im Nutzerprofil, damit sie
+// nach einem Neustart nicht erneut ausgewaehlt werden muss.
+function getSettingsPath() {
+  return path.join(app.getPath('userData'), 'settings.json');
+}
+
+function loadSavedLanguage() {
+  try {
+    const settings = fs.readJsonSync(getSettingsPath());
+    return typeof settings.lang === 'string' ? settings.lang : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveLanguagePreference(lang) {
+  try {
+    fs.writeJsonSync(getSettingsPath(), { lang }, { spaces: 2 });
+  } catch (err) {
+    console.error('Sprachwahl konnte nicht gespeichert werden:', err);
+  }
+}
+
 function showAboutDialog(lang) {
   dialog.showMessageBox(mainWindow, {
     type: 'info',
@@ -204,12 +227,35 @@ function setupAutoUpdater() {
 
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = false;
+  // NSIS-Differential-Updates (Patch statt Vollinstaller) fuehren bei
+  // electron-updater bekanntermassen dazu, dass die gepatchte Datei nicht
+  // zuverlaessig im pending-Ordner landet ("Datei konnte nicht gefunden
+  // werden" beim Neustart). Vollstaendigen Download erzwingen.
+  autoUpdater.disableDifferentialDownload = true;
 
   autoUpdater.on('error', (err) => {
     console.error('Auto-Update-Fehler:', err);
+    mainWindow.webContents.send('update:progress', { state: 'error' });
+  });
+
+  autoUpdater.on('update-available', () => {
+    mainWindow.webContents.send('update:progress', { state: 'downloading', percent: 0 });
+  });
+
+  // Wird waehrend des Downloads wiederholt gefeuert (mehrmals pro
+  // Sekunde) -- treibt die Fortschrittsanzeige im Renderer an.
+  autoUpdater.on('download-progress', (progress) => {
+    mainWindow.webContents.send('update:progress', {
+      state: 'downloading',
+      percent: progress.percent,
+      transferred: progress.transferred,
+      total: progress.total,
+      bytesPerSecond: progress.bytesPerSecond,
+    });
   });
 
   autoUpdater.on('update-downloaded', (info) => {
+    mainWindow.webContents.send('update:progress', { state: 'done' });
     const lang = currentAppLang;
     dialog
       .showMessageBox(mainWindow, {
@@ -234,6 +280,11 @@ function setupAutoUpdater() {
 }
 
 app.whenReady().then(() => {
+  const savedLang = loadSavedLanguage();
+  if (savedLang && getAvailableLanguages().some((l) => l.code === savedLang)) {
+    currentAppLang = savedLang;
+  }
+
   buildAppMenu(currentAppLang);
   createWindow();
   setupAutoUpdater();
@@ -334,11 +385,12 @@ ipcMain.handle('app:getLanguageBundle', async () => ({
     flag: resolveFlagPath(lang.code, translations[lang.code]),
   })),
   translations,
-  defaultLang: 'de',
+  defaultLang: currentAppLang,
 }));
 
 ipcMain.on('app:setLanguage', (event, lang) => {
   currentAppLang = lang || 'de';
+  saveLanguagePreference(currentAppLang);
   buildAppMenu(currentAppLang);
 });
 

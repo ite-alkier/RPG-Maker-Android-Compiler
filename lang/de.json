@@ -145,6 +145,8 @@
   "menu.close": "Schließen",
   "menu.help": "Hilfe",
   "update.checking": "Prüfe auf Updates …",
+  "update.downloading": "Update wird heruntergeladen … {percent}%",
+  "update.downloadingWithSize": "Update wird heruntergeladen … {percent}% ({transferred} von {total})",
   "update.available": "Ein Update ist verfügbar (Version {version}) und wird jetzt im Hintergrund heruntergeladen …",
   "update.notAvailable": "Keine Updates verfügbar. Du nutzt bereits die aktuellste Version.",
   "update.downloaded.title": "Update bereit",

@@ -145,6 +145,8 @@
   "menu.close": "Fermer",
   "menu.help": "Aide",
   "update.checking": "Vérification des mises à jour…",
+  "update.downloading": "Téléchargement de la mise à jour… {percent} %",
+  "update.downloadingWithSize": "Téléchargement de la mise à jour… {percent} % ({transferred} sur {total})",
   "update.available": "Une mise à jour est disponible (version {version}) et est en cours de téléchargement en arrière-plan…",
   "update.notAvailable": "Aucune mise à jour disponible. Vous utilisez déjà la version la plus récente.",
   "update.downloaded.title": "Mise à jour prête",
